@@ -116,3 +116,33 @@ release/upstream change that supplies one.
   must show the actual mapping for tools, approvals, subagents, gateway
   telemetry, and any proposed replacement for compaction or Ripwire before the
   matrix is enabled.
+
+## Update 2026-09-19 — Ripwire is measurable as a named MCP connector
+
+The earlier Ripwire finding ("No for the requested CLI-only variant") assumed
+Ripwire runs as the sandbox's `exec` tool, which collapses into a generic tool
+name under schema v0.1. That assumption is now superseded for a different,
+working setup:
+
+- **Ripwire ships an MCP server** (`ripwire --mcp`, stdio) and, crucially,
+  `--listen=HOST:PORT` serves the same MCP over **Streamable HTTP** — the exact
+  transport TrueForge connectors require (they are URL-only). No bridge needed.
+- Built from source on the host (cmake 4.3.4 / AppleClang 17, C++23; the Daytona
+  sandbox still cannot build it — same toolchain gate as the C++/Rust pilot).
+- Registered via `POST /api/v1/settings/mcp-servers` with a `remote` manifest
+  pointing at `http://127.0.0.1:9700/mcp`. **TrueForge connected and enumerated
+  31 named tools** (`explore`, `impact`, `uses`, `find_symbol`, `edit_check`,
+  `quality_delta`, …) via `GET /api/v1/mcp-servers/ripwire/tools`.
+
+**Consequence for the schema (no change needed):** because each Ripwire verb is
+a distinctly named MCP tool, `tool_call.tool` already carries `ripwire`'s tool
+names, so User B can isolate Ripwire time **without** a schema-v0.1 change. The
+v0.1 blocker was specific to the CLI-as-`exec` framing; the MCP-connector
+framing fits the existing contract. This is worth confirming jointly with User B
+before the analyzer special-cases Ripwire, but it does not require a
+`schema_version` bump.
+
+**Caveat:** the host Ripwire indexes the host copy of the repo; a sandbox agent's
+in-sandbox edits are not reflected until the server is re-pointed. Ripwire's role
+is understand-before-edit context, so this is expected. This is a working
+capability, not a benchmark measurement — no trace was produced.

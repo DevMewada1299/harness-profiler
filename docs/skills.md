@@ -60,6 +60,31 @@ All three are connected with `auth_status: not_required`.
 | `deepwiki` | `mcp.deepwiki.com/mcp` | powers `wiki-qa` / `wiki-architect`; understand a repo |
 | `exa` | `mcp.exa.ai/mcp` | web/neural search fallback |
 | `parallel-web` | `search.parallel.ai/mcp` | parallel web search fallback |
+| `ripwire` | `http://127.0.0.1:9700/mcp` (host-run) | ranked call graph over an indexed repo — 31 verbs (`explore`, `impact`, `uses`, `find_symbol`, `edit_check`, …) |
+
+### `ripwire` connector (host-run)
+
+Ripwire is a compiled C++23 tool, not a TrueForge skill and not something the
+Daytona sandbox can build (no cmake/c++ there). We run it **on the host** and
+expose it as a normal remote connector:
+
+1. **Build once** (host has cmake 4.x / clang 17, C++23): clone
+   `redhat-et/ripwire`, `cmake -S . -B build-release -DCMAKE_BUILD_TYPE=Release
+   && cmake --build build-release -j`.
+2. **Serve it** pointed at your source tree:
+   `collector/ripwire-serve.sh /abs/path/to/your/repo 9700`.
+   `--listen` serves Ripwire's MCP over Streamable HTTP (loopback, no token,
+   edit verbs refused) — the transport TrueForge needs.
+3. **Register the connector** (once):
+   `POST http://localhost:8790/api/v1/settings/mcp-servers` with
+   `{"manifest":{"type":"remote","name":"ripwire","description":"...","url":"http://127.0.0.1:9700/mcp"}}`.
+   Verify: `GET /api/v1/mcp-servers/ripwire/tools` returns 31 tools.
+4. **Attach** it in Build Agent → MCP Servers, like any other connector.
+
+**"Adding source files later"** = restart the server against a different repo
+path (step 2). Ripwire indexes the **host** copy; a TrueForge agent editing in
+its sandbox is not reflected until you re-serve. Ripwire's role is
+understand-before-edit context, so that is expected, not a bug.
 
 - **Where they live:** Settings → Connectors (all connected ✅).
 - **Attach:** Build Agent → **MCP Servers** section → add each; set discovery to
