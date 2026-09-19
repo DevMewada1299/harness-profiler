@@ -21,11 +21,12 @@ requirements, so no model or benchmark run was started.
 | Subagent steps distinguishable? | Declared: `thread.created` carries the new thread id, parent, and agent info; `thread.done` carries terminal state. | SDK v0.2.0 `ThreadCreatedEvent` and `ThreadDoneEvent` types |
 | Compaction observable as an event? | **No.** The current `TurnStreamingEvent` union has no compaction event. Configuration exists, but no event supplies the schema-v0.1 compaction fields. Do not implement or measure `compaction_on` until a live lower-seam mapping is demonstrated or User A and User B jointly version the schema. | SDK v0.2.0 `RuntimeConfig`, `CompactionConfig`, and `TurnStreamingEvent` types |
 | Capabilities settable per inline agent? | Declared: `AgentSpec.config` exposes `dynamicSubAgents.enabled`, `contextManagement.compaction.enabled`, `sandbox.enabled`, and MCP `preload`/approval controls. | SDK v0.2.0 `AgentSpec`, `RuntimeConfig`, `McpServer` types |
+| Code Mode selectable per inline agent? | **No.** There is no Code Mode field in `RuntimeConfig`. Server source wires Code Mode automatically only when the resolved agent has non-empty MCP tool sets. A sandbox-only coding task has no independent Code Mode switch to vary. | TrueForge 0.2.0 `SessionHandle` and `Sandbox.configureCodeMode` source |
 | Gateway exposes raw prompt and accepts `run_id`? | **Unproven.** The currently configured provider is direct OpenAI, not a TrueFoundry AI Gateway endpoint. No raw prompt, cache, cost, or `run_id` join evidence exists. | Local TrueForge Settings → Models inspection |
 | Daytona can create required toolchain sandbox? | **Unproven.** Daytona is available but not configured; no sandbox was created and no toolchain command was run. | Local TrueForge Settings → Sandbox providers inspection |
-| Runner can stage the fixture before the first model call? | **No documented path found.** The SDK/OpenAPI exposes sandbox enablement, `sandbox.created`, and post-turn sandbox-file download, but no sandbox exec, upload, or pre-turn staging endpoint. Daytona settings expose only key, timeout, and lifecycle values—not snapshot selection. | SDK v0.2.0 sessions client; local OpenAPI 0.2.0; local Daytona configuration form |
-| Runner can execute the trusted verifier after the turn? | **No documented path found.** The public TrueForge API can download listed sandbox artifacts but does not expose sandbox command execution. | SDK v0.2.0 sessions client; local OpenAPI 0.2.0 |
-| Ripwire tool time observable without changing `tool_call.tool`? | **Unproven.** `model.message.toolCalls` gives the configured tool name and `tool.response` links by `toolCallId`, but no Ripwire CLI/MCP integration has been exercised. Do not label a generic shell call as `ripwire` without live evidence of the executed command or a versioned schema decision. | SDK v0.2.0 `ModelMessageEvent`, `ToolResponseEvent`, and `ToolCall` types |
+| Runner can stage the fixture before the first model call? | **No.** In the 0.2.0 server, a fresh sandbox is created lazily inside the agent's `exec` tool handler, after the model requests that tool. The only reattach input comes from a prior turn's persisted sandbox id; neither `AgentSpec` nor the public API accepts a runner-supplied initial sandbox id. The release-owned Daytona image cannot be selected in local settings. | TrueForge 0.2.0 `Sandbox.ensureSandboxCreated`, `SessionHandle`, and Daytona settings/OpenAPI source |
+| Runner can execute the trusted verifier after the turn? | **Potential lower seam, unproven.** The server's Daytona provider can execute commands when given a sandbox id, and `sandbox.created` exposes that id. A trusted runner with a separately provisioned Daytona credential could verify the resulting sandbox after the turn. The public TrueForge SDK/API does not provide that command endpoint. | TrueForge 0.2.0 `DaytonaProvider.exec`, `SandboxCreatedEvent`, and public SDK/OpenAPI |
+| Ripwire tool time observable without changing `tool_call.tool`? | **No for the requested CLI-only variant.** Ripwire would run as the sandbox's actual `exec` tool; the command is present in the model tool arguments, but schema v0.1 stores neither command nor command classification. Keeping `tool: "exec"` preserves the contract but prevents User B from isolating Ripwire time. Do not implement `ripwire_on` until we jointly version the schema (for example, an optional command classification) or use a genuinely named Ripwire MCP tool. | TrueForge 0.2.0 sandbox `exec` source; SDK v0.2.0 `ToolCall` and `ToolResponseEvent` types |
 
 ## Consequences for the collector
 
@@ -36,12 +37,18 @@ requirements, so no model or benchmark run was started.
 2. Explicit inline-agent configuration can prevent TrueForge defaults from
    leaking into `baseline`: dynamic subagents and compaction can be set false;
    eager versus deferred MCP loading can be controlled with `preload`.
-3. The trace writer may derive model-call boundaries from the stream, but must
+3. `code_mode_on` is not a valid one-setting variant for this sandbox-only task
+   with the released public controls. Adding an MCP server solely to make it
+   available would itself change the tool environment.
+4. A post-turn trusted verifier may be feasible through the Daytona control
+   plane, but it needs an out-of-repository credential and a live proof that
+   the `sandbox.created` id can be accessed by that credential.
+5. The trace writer may derive model-call boundaries from the stream, but must
    leave gateway-only fields unavailable rather than fabricate raw-prompt,
    cache, cost, or compaction values.
-4. The v0.1 `tool_call.tool` value remains the actual TrueForge tool name. A
-   Ripwire CLI invocation is not a new tool name merely because its command
-   mentions Ripwire.
+6. The v0.1 `tool_call.tool` value remains the actual TrueForge tool name. A
+   Ripwire CLI invocation is `exec`, not a new tool name merely because its
+   command mentions Ripwire.
 
 ## Fixture-source findings
 
@@ -61,10 +68,13 @@ invented.
   accepts the runner's `run_id` without storing a secret in this repository.
 - Configure Daytona in the local UI with the existing key, then prove the
   required toolchain in a fresh sandbox.
-- Demonstrate a supported way to stage the fixture before the first model call
-  and run the trusted verifier against the same resulting sandbox. If this
-  requires a separate supported Daytona control plane, prove how its sandbox is
-  bound to the TrueForge session.
+- Resolve the staging blocker. The released public API cannot attach a
+  pre-staged sandbox to a first turn; do not emulate staging with an agent tool
+  call because that would occur after the first model call.
+- If a separate Daytona control plane is used for the trusted verifier, prove
+  that its credential can access the `sandbox.created` id and that the verifier
+  runs outside the agent-editable tree.
 - Run a short non-benchmark discovery turn and retain its event payloads. It
-  must show the actual mapping for tools, approvals, subagents, compaction,
-  gateway telemetry, and Ripwire (if any) before the 18-run matrix is enabled.
+  must show the actual mapping for tools, approvals, subagents, gateway
+  telemetry, and any proposed replacement for compaction or Ripwire before the
+  matrix is enabled.

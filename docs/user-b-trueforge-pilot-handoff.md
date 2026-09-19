@@ -36,12 +36,13 @@ all cells.
 | `subagents_on` | Enable dynamic subagents | Typed SDK control found; no live proof |
 | `compaction_on` | Enable compaction | Typed SDK control found; **no explicit compaction event** in SDK v0.2.0 |
 | `deferred_tools_on` | Change MCP tool loading from eager to deferred | Typed SDK control found; no live proof |
-| `code_mode_on` | Enable the one-script code-mode mechanism | **Mechanism not yet found in SDK/API discovery** |
-| `ripwire_on` | Make the Ripwire CLI available while keeping all other settings at baseline | **Not yet observable in the v0.1 trace contract** |
+| `code_mode_on` | Enable the one-script code-mode mechanism | **Not a released per-agent control.** Code Mode is automatic when MCP tools exist, so it is not a valid one-setting toggle for this sandbox-only task. |
+| `ripwire_on` | Make the Ripwire CLI available while keeping all other settings at baseline | **Blocked by schema v0.1.** A CLI invocation remains the actual `exec` tool and cannot be separately reported without a new field or a named MCP tool. |
 
 No matrix cell may run until its intended one-setting difference has been
 proved from the configured runtime. In particular, `compaction_on`,
-`code_mode_on`, and `ripwire_on` are not currently safe to measure.
+`code_mode_on`, and `ripwire_on` are not currently safe to measure. The
+requested six-variant matrix cannot begin unchanged.
 
 ## Runner approval policy
 
@@ -61,12 +62,16 @@ still needs live proof before implementation.
 - The SDK declares model messages, tool responses, approval events, sandbox
   creation, and subagent thread events. It does **not** declare an explicit
   compaction event.
-- No documented public endpoint stages files or executes a sandbox command
-  before/after a turn. The required pre-turn staging and trusted-verifier path
-  need a supported demonstrated design before collection begins.
-- Ripwire time is reportable only if its invocation can be observed without
-  overwriting the actual `tool_call.tool` value. A generic shell tool call is
-  not automatically a Ripwire tool call.
+- The 0.2.0 server creates a fresh sandbox lazily in response to the agent's
+  `exec` tool call; the runner cannot attach a pre-staged sandbox before the
+  first model call through the released public interface. A post-turn verifier
+  may be possible through Daytona using the emitted sandbox id, but this is not
+  yet live-proven.
+- Code Mode is automatically configured only when MCP tool sets exist; there is
+  no `AgentSpec` field that toggles it independently.
+- CLI-only Ripwire time cannot be reported separately in schema v0.1 without
+  overwriting the real tool name (`exec`). This requires a jointly announced,
+  versioned contract change or a genuinely named Ripwire MCP tool.
 
 See [sdk-findings.md](sdk-findings.md) for the detailed evidence and gates.
 
