@@ -7,10 +7,10 @@ design, not pilot measurement data.
 
 ## Status
 
-**The pilot is discovery-blocked.** The local server currently has a direct
-`openai` provider configured at `https://api.openai.com/v1` and no configured
-Daytona provider. That does not meet the planned AI Gateway or sandbox
-requirements, so no model or benchmark run was started.
+**The pilot is discovery-blocked.** Local OpenAI and Daytona are now configured,
+and a non-benchmark sandbox discovery turn succeeded in creating a Daytona
+sandbox. The required C++/Rust toolchain is absent from that sandbox, so no
+benchmark run was started.
 
 | Question | Answer | Source |
 |---|---|---|
@@ -23,7 +23,7 @@ requirements, so no model or benchmark run was started.
 | Capabilities settable per inline agent? | Declared: `AgentSpec.config` exposes `dynamicSubAgents.enabled`, `contextManagement.compaction.enabled`, `sandbox.enabled`, and MCP `preload`/approval controls. | SDK v0.2.0 `AgentSpec`, `RuntimeConfig`, `McpServer` types |
 | Code Mode selectable per inline agent? | **No.** There is no Code Mode field in `RuntimeConfig`. Server source wires Code Mode automatically only when the resolved agent has non-empty MCP tool sets. A sandbox-only coding task has no independent Code Mode switch to vary. | TrueForge 0.2.0 `SessionHandle` and `Sandbox.configureCodeMode` source |
 | Gateway exposes raw prompt and accepts `run_id`? | **Unproven.** The currently configured provider is direct OpenAI, not a TrueFoundry AI Gateway endpoint. No raw prompt, cache, cost, or `run_id` join evidence exists. | Local TrueForge Settings → Models inspection |
-| Daytona can create required toolchain sandbox? | **Unproven.** Daytona is available but not configured; no sandbox was created and no toolchain command was run. | Local TrueForge Settings → Sandbox providers inspection |
+| Daytona can create required toolchain sandbox? | **No.** A live non-benchmark sandbox probe found `git version 2.39.5`, then `/usr/bin/bash: line 1: cmake: command not found`; a second probe found no `cmake`, `cargo`, `rustc`, `c++`, or `g++` on `PATH`. | Local TrueForge session on 2026-09-19 |
 | Runner can stage the fixture before the first model call? | **No.** In the 0.2.0 server, a fresh sandbox is created lazily inside the agent's `exec` tool handler, after the model requests that tool. The only reattach input comes from a prior turn's persisted sandbox id; neither `AgentSpec` nor the public API accepts a runner-supplied initial sandbox id. The release-owned Daytona image cannot be selected in local settings. | TrueForge 0.2.0 `Sandbox.ensureSandboxCreated`, `SessionHandle`, and Daytona settings/OpenAPI source |
 | Runner can execute the trusted verifier after the turn? | **Potential lower seam, unproven.** The server's Daytona provider can execute commands when given a sandbox id, and `sandbox.created` exposes that id. A trusted runner with a separately provisioned Daytona credential could verify the resulting sandbox after the turn. The public TrueForge SDK/API does not provide that command endpoint. | TrueForge 0.2.0 `DaytonaProvider.exec`, `SandboxCreatedEvent`, and public SDK/OpenAPI |
 | Ripwire tool time observable without changing `tool_call.tool`? | **No for the requested CLI-only variant.** Ripwire would run as the sandbox's actual `exec` tool; the command is present in the model tool arguments, but schema v0.1 stores neither command nor command classification. Keeping `tool: "exec"` preserves the contract but prevents User B from isolating Ripwire time. Do not implement `ripwire_on` until we jointly version the schema (for example, an optional command classification) or use a genuinely named Ripwire MCP tool. | TrueForge 0.2.0 sandbox `exec` source; SDK v0.2.0 `ToolCall` and `ToolResponseEvent` types |
@@ -61,13 +61,51 @@ dependency-free CTest tests before the benchmark pin. The derived public
 repository does not yet exist; no fixture URL or benchmark commit has been
 invented.
 
+## Live sandbox evidence and root cause
+
+The local discovery agent used the configured `gpt-5-4-mini` model and one
+sandbox `exec` tool call. The exact probe was:
+
+```sh
+git --version && cmake --version && (c++ --version || g++ --version) && cargo --version && rustc --version
+```
+
+Its output stopped after `git version 2.39.5` with:
+
+```text
+/usr/bin/bash: line 1: cmake: command not found
+```
+
+The follow-up diagnostic found no paths for `cmake`, `cargo`, `rustc`, `c++`,
+or `g++`. This consistently reproduces the missing-toolchain gate.
+
+The TrueForge 0.2.0 source identifies the cause: standalone Daytona uses a
+release-owned image URI, and the local sandbox-provider settings schema exposes
+only the key and timeout/lifecycle fields. It has no image or snapshot override.
+The release's own sandbox instructions list Python, Git, Curl, Helm, jq,
+ripgrep, and genson as pre-installed; they do not provide the C++ or Rust tools
+this task requires.
+
+Installing packages during a task run is not an acceptable workaround. Every
+pilot cell requires a fresh sandbox, so that installation would change the
+environment, add agent/tool time, and destroy comparability. Continuing requires
+either a TrueForge-supported configurable image containing the toolchain or a
+release/upstream change that supplies one.
+
 ## Required next discovery actions
 
-- Configure a **custom TrueFoundry AI Gateway** provider locally, select one
-  fixed model, and provide a documented gateway request/telemetry path that
-  accepts the runner's `run_id` without storing a secret in this repository.
-- Configure Daytona in the local UI with the existing key, then prove the
-  required toolchain in a fresh sandbox.
+- For the local-only hackathon path, keep the configured direct OpenAI provider
+  and one fixed model. A TrueFoundry AI Gateway account or Virtual Account
+  Token is not required; gateway-only telemetry is unavailable on this path.
+- If the original gateway telemetry requirement is retained, separately
+  configure a custom TrueFoundry AI Gateway provider and prove a documented
+  request/telemetry path accepts the runner's `run_id` without storing a secret
+  in this repository.
+- Daytona is configured and can create a sandbox, but it has not passed the
+  required toolchain probe; resolve the image gate below.
+- Replace or upgrade the release-owned sandbox image through a supported
+  TrueForge path, then rerun the same probe. It must show Git, CMake, a C++
+  compiler, Cargo, and rustc before any fixture work or benchmark session.
 - Resolve the staging blocker. The released public API cannot attach a
   pre-staged sandbox to a first turn; do not emulate staging with an agent tool
   call because that would occur after the first model call.

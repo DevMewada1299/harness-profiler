@@ -57,8 +57,8 @@ still needs live proof before implementation.
 - The local TrueForge server is version 0.2.0. Its current model provider is a
   direct OpenAI endpoint, not the planned TrueFoundry AI Gateway. Therefore raw
   prompt bytes, cache counters, cost, and `run_id` joins are not established.
-- Daytona is available but unconfigured; no sandbox or required toolchain has
-  been proven.
+- Daytona now creates sandboxes, but its release-owned image lacks `cmake`,
+  `cargo`, `rustc`, `c++`, and `g++`; the pilot remains blocked.
 - The SDK declares model messages, tool responses, approval events, sandbox
   creation, and subagent thread events. It does **not** declare an explicit
   compaction event.
