@@ -1,0 +1,12 @@
+traces/*.jsonl
+!samples/*.jsonl
+node_modules/
+dist/
+.env
+.env.local
+__pycache__/
+*.pyc
+.venv/
+out/
+report.html
+.DS_Store

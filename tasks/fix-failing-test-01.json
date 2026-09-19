@@ -1,0 +1,13 @@
+{
+  "task_id": "fix-failing-test-01",
+  "prompt": "The test suite is failing. Find the bug, fix it, and make the tests pass.",
+  "repo_path": "repos/calc",
+  "verify_cmd": "pytest -q",
+  "shape": {
+    "files_touched_expected": 1,
+    "turns_expected": 5,
+    "kind": "single_file_edit",
+    "search_heavy": false,
+    "tool_output_heavy": false
+  }
+}
