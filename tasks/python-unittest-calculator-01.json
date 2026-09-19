@@ -1,0 +1,15 @@
+{
+  "task_id": "python-unittest-calculator-01",
+  "prompt": "Clone https://github.com/DevMewada1299/cpp-to-rust-calculator-fixture.git into /tmp/python-calculator, check out commit 0b0cc56f223c08d961a5bf886db3ac0181c357b3, run python3 -m unittest -v, identify the smallest code fix, change only calculator.py, and rerun python3 -m unittest -v. Do not install packages. Report the final verifier output.",
+  "repo_url": "https://github.com/DevMewada1299/cpp-to-rust-calculator-fixture.git",
+  "commit": "0b0cc56f223c08d961a5bf886db3ac0181c357b3",
+  "repo_path": "/tmp/python-calculator",
+  "verify_cmd": "python3 -m unittest -v",
+  "shape": {
+    "files_touched_expected": 1,
+    "turns_expected": 4,
+    "kind": "single_file_edit",
+    "search_heavy": false,
+    "tool_output_heavy": false
+  }
+}
