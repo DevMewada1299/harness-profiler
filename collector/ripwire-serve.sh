@@ -28,7 +28,7 @@ set -euo pipefail
 
 REPO="${1:?usage: ripwire-serve.sh /abs/path/to/repo [port]}"
 PORT="${2:-9700}"
-RIPWIRE_BIN="${RIPWIRE_BIN:-/private/tmp/ripwire/build-release/ripwire}"
+RIPWIRE_BIN="${RIPWIRE_BIN:-$HOME/.local/bin/ripwire}"
 
 if [[ ! -x "$RIPWIRE_BIN" ]]; then
   echo "ripwire binary not found at $RIPWIRE_BIN" >&2

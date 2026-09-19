@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Optional: auto-start the Ripwire MCP server on login so the TrueForge
+     `ripwire` connector is always ready.
+
+     Install (run yourself):
+       cp collector/dev.harness.ripwire.plist ~/Library/LaunchAgents/
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/dev.harness.ripwire.plist
+     Stop / uninstall:
+       launchctl bootout gui/$(id -u)/dev.harness.ripwire
+       rm ~/Library/LaunchAgents/dev.harness.ripwire.plist
+
+     Change the repo path (second ProgramArguments string) to index a different
+     source tree; the connector URL 127.0.0.1:9700/mcp is unaffected. -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>dev.harness.ripwire</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/Users/devmewada/.local/bin/ripwire</string>
+    <string>/Users/devmewada/Desktop/harness-profiler</string>
+    <string>--listen=127.0.0.1:9700</string>
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>/Users/devmewada/.local/share/ripwire/ripwire-serve.log</string>
+  <key>StandardErrorPath</key>
+  <string>/Users/devmewada/.local/share/ripwire/ripwire-serve.log</string>
+</dict>
+</plist>
