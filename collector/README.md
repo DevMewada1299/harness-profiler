@@ -2,6 +2,31 @@
 
 Owns everything that produces traces. Nothing here reads analysis code.
 
+## Current state (2026-09-19)
+
+Discovery is done and the full benchmark is **gated**, so no `traces/` exist yet
+— on purpose (we don't fake numbers). What works today:
+
+- **Discovery findings:** [`docs/sdk-findings.md`](../docs/sdk-findings.md) —
+  what the SDK/SSE actually expose, and the gates: provider is direct OpenAI (no
+  gateway → no raw prompt / cache / cost / `run_id`), the Daytona image lacks a
+  C++/Rust toolchain, and `compaction`/`code_mode` aren't cleanly one-setting
+  toggles.
+- **Working local demo (not a benchmark):** a Python fixer that repairs failing
+  tests in a fresh Daytona sandbox. Task card
+  [`tasks/python-unittest-calculator-01.json`](../tasks/python-unittest-calculator-01.json),
+  runbook [`docs/python-trueforge-demo-runbook.md`](../docs/python-trueforge-demo-runbook.md).
+  Fixture pinned at `cpp-to-rust-calculator-fixture@0b0cc56` (branch `python-demo`).
+- **Ripwire as a host-run MCP connector:** makes the `ripwire_on` variant
+  measurable via named tools (no schema change). Start it with
+  [`ripwire-serve.sh`](ripwire-serve.sh); optional login auto-start in
+  [`dev.harness.ripwire.plist`](dev.harness.ripwire.plist); agent instructions
+  in [`docs/agent-instructions-ripwire.md`](../docs/agent-instructions-ripwire.md).
+- **Demo scripts:** [`docs/demo-script-cpp-to-rust.md`](../docs/demo-script-cpp-to-rust.md)
+  (read-aloud, placeholders for live values).
+
+The sections below are the **target** runner — build them once the gates clear.
+
 ## Responsibilities
 
 1. Run TrueForge locally (`npx @truefoundry/trueforge`).
